@@ -1,12 +1,26 @@
-from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from bson import ObjectId
 
-db = SQLAlchemy()
+class URL:
+    def __init__(self, original_url, short_code, created_at=None, _id=None):
+        self._id = _id or ObjectId()
+        self.original_url = original_url
+        self.short_code = short_code
+        self.created_at = created_at or datetime.utcnow()
 
-class URL(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    url = db.Column(db.String(500), nullable=False)
-    short_code = db.Column(db.String(10), unique=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    access_count = db.Column(db.Integer, default=0)
+    def to_dict(self):
+        return {
+            '_id': str(self._id),
+            'original_url': self.original_url,
+            'short_code': self.short_code,
+            'created_at': self.created_at
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            original_url=data['original_url'],
+            short_code=data['short_code'],
+            created_at=data.get('created_at'),
+            _id=ObjectId(data['_id']) if '_id' in data else None
+        )

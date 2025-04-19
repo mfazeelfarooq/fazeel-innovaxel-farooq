@@ -2,4 +2,6 @@ import random
 import string
 
 def generate_short_code(length=6):
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+    """Generate a random short code of specified length."""
+    characters = string.ascii_letters + string.digits
+    return ''.join(random.choice(characters) for _ in range(length))
