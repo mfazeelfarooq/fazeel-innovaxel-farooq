@@ -1,0 +1,17 @@
+[build]
+  command = "python app.py"
+  functions = "netlify/functions"
+  publish = "/"
+  base = "/"
+
+[build.environment]
+  PYTHON_VERSION = "3.9"
+
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/app/:splat"
+  status = 200
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild" 
