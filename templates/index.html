@@ -85,7 +85,7 @@
                         <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard()">Copy</button>
                     </div>
                     <div class="d-flex justify-content-between">
-                        <button class="btn btn-info" onclick="showStats()">View Stats</button>
+                        <button class="btn btn-info" onclick="showStats()">View Details</button>
                         <button class="btn btn-danger" onclick="deleteUrl()">Delete URL</button>
                     </div>
                 </div>
@@ -302,8 +302,9 @@
                                 <small>${url.original_url}</small>
                             </div>
                             <div>
-                                <button class="btn btn-sm btn-info" onclick="viewUrl('${url.short_code}')">View</button>
-                                <button class="btn btn-sm btn-danger" onclick="deleteUrlFromList('${url.short_code}')">Delete</button>
+                                <button class="btn btn-sm btn-primary" onclick="viewUrl('${url.short_code}')" title="Open in new tab">Open</button>
+                                <button class="btn btn-sm btn-info" onclick="viewUrlDetails('${url.short_code}')" title="View details">Details</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteUrlFromList('${url.short_code}')" title="Delete URL">Delete</button>
                             </div>
                         </div>
                     `;
@@ -318,6 +319,12 @@
 
         // View URL details
         async function viewUrl(shortCode) {
+            // Open the short URL in a new tab
+            window.open(`/${shortCode}`, '_blank');
+        }
+
+        // View URL details in the UI
+        async function viewUrlDetails(shortCode) {
             currentShortCode = shortCode;
             clearMessages();
             setLoading(true);
@@ -332,6 +339,9 @@
                 document.getElementById('shortUrl').value = `${window.location.origin}/${data.short_code}`;
                 document.querySelector('.result').style.display = 'block';
                 document.querySelector('.update-form').style.display = 'block';
+                
+                // Scroll to the result section
+                document.querySelector('.result').scrollIntoView({ behavior: 'smooth' });
             } catch (error) {
                 showError(error.message);
             } finally {

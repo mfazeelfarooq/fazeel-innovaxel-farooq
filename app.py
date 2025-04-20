@@ -6,6 +6,8 @@ import os
 from dotenv import load_dotenv
 from datetime import datetime
 from bson import ObjectId
+from urllib.parse import urlparse
+import validators
 
 load_dotenv()
 
@@ -26,6 +28,42 @@ except Exception as e:
 if 'urls' not in db.list_collection_names():
     db.create_collection('urls')
 
+def validate_url(url):
+    """Validate if the URL is properly formatted."""
+    if not url:
+        return False, "URL is required"
+    if not validators.url(url):
+        return False, "Invalid URL format"
+    return True, None
+
+# Redirect route must be defined before other routes with URL parameters
+@app.route('/<short_code>')
+def redirect_to_url(short_code):
+    try:
+        print(f"Redirecting short code: {short_code}")
+        # Find the URL document
+        url_data = db.urls.find_one({'short_code': short_code})
+        
+        if not url_data:
+            print(f"URL not found for short code: {short_code}")
+            return jsonify({'error': 'URL not found'}), 404
+        
+        # Update click count and last clicked time
+        db.urls.update_one(
+            {'short_code': short_code},
+            {
+                '$inc': {'clicks': 1},
+                '$set': {'last_clicked': datetime.utcnow()}
+            }
+        )
+        
+        url = URL.from_dict(url_data)
+        print(f"Redirecting to: {url.original_url}")
+        return redirect(url.original_url, code=302)
+    except Exception as e:
+        print(f"Redirect error: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -35,14 +73,21 @@ def shorten_url():
     data = request.get_json()
     original_url = data.get('url')
     
-    if not original_url:
-        return jsonify({'error': 'URL is required'}), 400
+    # Validate URL
+    is_valid, error_message = validate_url(original_url)
+    if not is_valid:
+        return jsonify({'error': error_message}), 400
     
     # Generate a short code
     short_code = generate_short_code()
     
-    # Create a new URL document
-    url = URL(original_url=original_url, short_code=short_code)
+    # Create a new URL document with click tracking
+    url = URL(
+        original_url=original_url,
+        short_code=short_code,
+        clicks=0,
+        last_clicked=None
+    )
     
     # Save to MongoDB
     db.urls.insert_one(url.to_dict())
@@ -63,7 +108,9 @@ def get_url(short_code):
     return jsonify({
         'original_url': url.original_url,
         'short_code': url.short_code,
-        'created_at': url.created_at.isoformat()
+        'created_at': url.created_at.isoformat(),
+        'clicks': url.clicks,
+        'last_clicked': url.last_clicked.isoformat() if url.last_clicked else None
     })
 
 @app.route('/shorten/<short_code>', methods=['PUT'])
@@ -71,8 +118,10 @@ def update_url(short_code):
     data = request.get_json()
     new_url = data.get('url')
     
-    if not new_url:
-        return jsonify({'error': 'URL is required'}), 400
+    # Validate URL
+    is_valid, error_message = validate_url(new_url)
+    if not is_valid:
+        return jsonify({'error': error_message}), 400
     
     result = db.urls.update_one(
         {'short_code': short_code},
@@ -103,7 +152,9 @@ def get_stats(short_code):
     return jsonify({
         'original_url': url.original_url,
         'short_code': url.short_code,
-        'created_at': url.created_at.isoformat()
+        'created_at': url.created_at.isoformat(),
+        'clicks': url.clicks,
+        'last_clicked': url.last_clicked.isoformat() if url.last_clicked else None
     })
 
 @app.route('/shorten', methods=['GET'])
@@ -112,19 +163,10 @@ def list_urls():
     return jsonify([{
         'original_url': url['original_url'],
         'short_code': url['short_code'],
-        'created_at': url['created_at'].isoformat()
+        'created_at': url['created_at'].isoformat(),
+        'clicks': url.get('clicks', 0),
+        'last_clicked': url.get('last_clicked', '').isoformat() if url.get('last_clicked') else None
     } for url in urls])
-
-@app.route('/<short_code>')
-def redirect_to_url(short_code):
-    # Find the URL document
-    url_data = db.urls.find_one({'short_code': short_code})
-    
-    if not url_data:
-        return jsonify({'error': 'URL not found'}), 404
-    
-    url = URL.from_dict(url_data)
-    return redirect(url.original_url)
 
 def generate_short_code():
     import string
