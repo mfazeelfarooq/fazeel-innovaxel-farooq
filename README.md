@@ -51,6 +51,13 @@ python app.py
 
 2. The API will be available at `http://localhost:5000`
 
+3. To test the API endpoints, open a new terminal and run:
+```bash
+python test_api.py
+```
+
+Note: Make sure to keep the Flask server running in the first terminal while running the tests in the second terminal.
+
 ## API Endpoints
 
 ### Create Short URL
