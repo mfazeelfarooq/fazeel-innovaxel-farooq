@@ -142,4 +142,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Support
 
+<<<<<<< HEAD
 For support, please open an issue in the GitHub repository or contact the maintainers.
+=======
+For support, please open an issue in the GitHub repository or contact the maintainers.
+>>>>>>> ea0026f (Configuring env file)
